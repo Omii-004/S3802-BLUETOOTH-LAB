@@ -1,9 +1,8 @@
 """
 gui/app.py
 ==========
-Main S3802 Desktop Application Controller.
-Assembles ConnectionPanel, Tabbed Notebook Views, Hex Inspector,
-and connects background AsyncWorker threads with the thread-safe GuiLogger.
+Main S3802 Desktop Application Controller with Dark Cyber Theme
+and Floating Toast Notifications.
 """
 
 from queue import Empty
@@ -12,6 +11,8 @@ from tkinter import messagebox, ttk
 
 from bluetooth.device import S3802Device
 from gui.logger import GuiLogger
+from gui.theme import Colors, apply_modern_theme
+from gui.toast import ToastNotification
 from gui.views.connection import ConnectionPanel
 from gui.views.file_view import FilePusherView
 from gui.views.hex_view import HexMonitorView
@@ -28,8 +29,12 @@ class S3802App(tk.Tk):
         super().__init__()
 
         self.title("S3802 Bluetooth Controller & Protocol Lab")
-        self.geometry("820x680")
-        self.minsize(780, 600)
+        self.geometry("840x700")
+        self.minsize(800, 620)
+
+        # Apply Cyber-Dark Modern Theme & Toast Engine
+        apply_modern_theme(self)
+        self.toast = ToastNotification(self)
 
         # Core Engines
         self.logger = GuiLogger()
@@ -41,11 +46,11 @@ class S3802App(tk.Tk):
         self.conn_panel = ConnectionPanel(
             self, on_connect=self._on_connect, on_disconnect=self._on_disconnect
         )
-        self.conn_panel.pack(fill=tk.X, padx=10, pady=5)
+        self.conn_panel.pack(fill=tk.X, padx=12, pady=8)
 
         # Center: Tabbed Notebook Navigation
         self.notebook = ttk.Notebook(self)
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=12, pady=(0, 8))
 
         # Views
         self.image_view = ImageStudioView(self.notebook, on_send_image=self._on_send_file)
@@ -86,11 +91,12 @@ class S3802App(tk.Tk):
 
         def on_success(mtu):
             self.conn_panel.set_state_connected(mtu)
+            self.toast.show(f"Connected to S3802! MTU: {mtu:,} B")
 
         def on_error(exc):
             self.logger.log_error(str(exc))
             self.conn_panel.set_state_disconnected("Connection Failed")
-            messagebox.showerror("Connection Error", str(exc))
+            self.toast.show(f"Connection Failed: {exc}", is_error=True)
 
         self.worker.submit(do_connect, on_success=on_success, on_error=on_error)
 
@@ -101,6 +107,7 @@ class S3802App(tk.Tk):
 
         def on_done(_):
             self.conn_panel.set_state_disconnected()
+            self.toast.show("Disconnected from device")
 
         self.worker.submit(do_disconnect, on_success=on_done)
 
@@ -110,7 +117,7 @@ class S3802App(tk.Tk):
 
     def _on_send_file(self, filename: str, file_bytes: bytes):
         if not self.device.is_connected:
-            messagebox.showwarning("Not Connected", "Please connect to Samsung GT-S3802 first.")
+            self.toast.show("Please connect to Samsung GT-S3802 first", is_error=True)
             return
 
         def do_send():
@@ -123,14 +130,17 @@ class S3802App(tk.Tk):
             success = self.opp.push_file(filename, file_bytes, mime_type=mime, progress_callback=progress)
             if success:
                 self.logger.log_success(f"PUT '{filename}' completed successfully!")
-                return True
+                return filename
             raise IOError("PUT rejected by S3802")
+
+        def on_success(fname):
+            self.toast.show(f"File '{fname}' transferred to S3802!")
 
         def on_error(exc):
             self.logger.log_error(f"Transfer error: {exc}")
-            messagebox.showerror("Transfer Failed", str(exc))
+            self.toast.show(f"Transfer Failed: {exc}", is_error=True)
 
-        self.worker.submit(do_send, on_error=on_error)
+        self.worker.submit(do_send, on_success=on_success, on_error=on_error)
 
     def _on_close(self):
         self.worker.stop()
