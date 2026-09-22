@@ -27,3 +27,21 @@ logs/protocol-dumps/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Old Prototype Scripts
+bt_obex_connect.py
+bt_test.py
+s3802_sdp.py
+test_bluetooth_serial.py
+
+# Local Test Files
+test.jpg
+test.txt
+test_card.jpg
+
+# Internal Planning Documents
+AGENTS.md
+DESIGN.md
+PRD.md
+PWD.md
+RULES.md

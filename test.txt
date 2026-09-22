@@ -1,3 +1,0 @@
-Hello from Python!
-
-This file was sent to my Samsung S3802 using Bluetooth OBEX Object Push.
