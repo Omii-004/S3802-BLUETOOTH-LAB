@@ -2,13 +2,14 @@
 services/opp.py
 ===============
 Object Push Profile (OPP UUID 0x1105) service implementation.
-Provides simple API for pushing text notes, JPEGs, and raw files to S3802.
+Provides simple API for pushing and pulling text notes, JPEGs, and raw files on S3802.
 """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 from bluetooth.device import S3802Device
 from obex.connect import obex_connect
+from obex.get import obex_get_object
 from obex.put import obex_put_file
 
 
@@ -36,7 +37,7 @@ class ObjectPushService:
         mime_type: str = "text/plain",
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> bool:
-        """Push a file object to the phone screen/inbox."""
+        """Push a file object to the phone."""
         return obex_put_file(
             device=self.device,
             filename=filename,
@@ -56,3 +57,7 @@ class ObjectPushService:
     def push_image(self, filename: str, image_bytes: bytes) -> bool:
         """Push a JPEG image to the phone."""
         return self.push_file(filename, image_bytes, mime_type="image/jpeg")
+
+    def pull_file(self, filename: str, mime_type: Optional[str] = None) -> Tuple[bool, bytes]:
+        """Pull/get an object from the phone via OBEX GET."""
+        return obex_get_object(self.device, filename, mime_type=mime_type)
