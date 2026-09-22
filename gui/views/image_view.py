@@ -62,7 +62,7 @@ class ImageStudioView(ttk.Frame):
 
         # Progress Bar
         self.progress_bar = ttk.Progressbar(self, orient="horizontal", mode="determinate")
-        self.progress_bar.grid(row=1, column=0, columnspan=2, fill=tk.X, pady=(10, 0))
+        self.progress_bar.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(10, 0))
 
         self.update_preview()
 
